@@ -6,14 +6,26 @@ Ecog GUI is a Python module to localize intracranial electrodes from MRI.
 It interactively fits a priori known electrodes to the MRI with a Graphical
 User Interface.
 
+This is currently an alpha version.
+
+![alt tag](https://raw.github.com/kingjr/ecoggui/docs/ecoggui_animation.gif)
+
 Example
 =======
+To use the interface
+
 ```
 from ecoggui import ElectrodeGUI
-ElectrodeGUI('my_mri.nii.gz', xy=xy)
+cd examples
+ElectrodeGUI('T1_post_deface.nii.gz', xy=xy)
 ```
 
-
+To understand what is happening:
+* `examples/model_displacement.py`: how the 2D grid/strips are fitted with a
+rotation and translation to math the 3D locations.
+* `examples/model_displacement.py`: how the 2D grid/strips are fitted with a
+2nd order polynomial with a constrain on the electrodes local distances, as we
+know the grid can be flexible but are not elastic.
 
 Installation
 ============
