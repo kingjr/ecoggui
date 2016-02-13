@@ -23,11 +23,19 @@ class ModelDisplacement(object):
 
         Attributes
         ==========
-        R : np.matrix, shape(3, 3)
-            Rotation matrix solved with SVD.
-        t : np.matrix, shape(1, 3)
-            Translation vector solved after SVD.
+        R_ : np.matrix, shape(3, 3)
+            Rotation matrix of f(X, Y) solved with SVD.
+        t_ : np.matrix, shape(1, 3)
+            Translation vector of f(X, Y) solved after SVD.
+        inv_R_ : np.matrix, shape(3, 3)
+            Rotation matrix of f(Y, X) solved with SVD.
+        t_ : np.matrix, shape(1, 3)
+            Translation vector of f(Y, X) solved after SVD.
         """
+        self.R_, self.t_ = self._fit(X, Y)
+        self.inv_R_, self.inv_t_ = self._fit(Y, X)  # XXX should be analytical!
+
+    def _fit(self, X, Y):
         from numpy import mean, tile, transpose, linalg
         X, Y = np.mat(X), np.mat(Y)
         n_samples = X.shape[0]  # total points
@@ -41,15 +49,16 @@ class ModelDisplacement(object):
         # Fit rotation through SVD
         H = transpose(XX) * YY
         U, S, Vt = linalg.svd(H)
-        self.R_ = Vt.T * U.T
+        R_ = Vt.T * U.T
 
         # Special reflection case
-        if linalg.det(self.R_) < 0:
+        if linalg.det(R_) < 0:
             Vt[2, :] *= -1
-            self.R_ = Vt.T * U.T
+            R_ = Vt.T * U.T
 
         # Fit translation
-        self.t_ = -self.R_ * centroid_X.T + centroid_Y.T
+        t_ = -R_ * centroid_X.T + centroid_Y.T
+        return R_, t_
 
     def transform(self, X):
         """
@@ -68,6 +77,12 @@ class ModelDisplacement(object):
         y_pred = self.R_ * X.T + np.tile(self.t_, (1, n_samples))
         return np.array(y_pred.T)
 
+    def inverse_transform(self, X):
+        X = np.mat(X)
+        n_samples = X.shape[0]
+        y_pred = self.inv_R_ * X.T + np.tile(self.inv_t_, (1, n_samples))
+        return np.array(y_pred.T)
+
     def fit_transform(self, X, Y):
         """ Fits R*X + t = Y and return predicted X.
 
@@ -82,7 +97,7 @@ class ModelDisplacement(object):
             Rotated + translated X
         """
         self.fit(X, Y)
-        return self.t_ransform(X)
+        return np.array(self.t_ransform(X))
 
 
 class ModelSurface(object):
@@ -127,18 +142,26 @@ class ModelSurface(object):
             Polynomial coefficients.
         """
 
-        X = self._check_X(X)
+        X = self._check_input(X)
+        y = self._check_input(y)
         # Fit Translation and rotation
         self._displacer = ModelDisplacement()
         self._displacer.fit(X[idx], y)
 
-        # Compute distance and neighbors on the 2D grid once
-        dist_2D = squareform(pdist(X))
+        # It's computationally easier to rotate y, so that we only computes
+        # the X polynomial once.
+        y_displaced = self._displacer.inverse_transform(y)
 
         # Compute X polynomial bases
         X_poly = PolynomialFeatures(self.degree).fit_transform(X)
         n_coefs = X_poly.shape[1]
-        # Let's start from a flat grid since it's the most likely
+
+        # Compute distance and neighbors on the 2D grid once
+        dist_2D = squareform(pdist(X))
+        # normalize distance constrain by distance, add one to avoid / 0
+        weights = 1 + dist_2D ** 2
+
+        # Let's initialize from a flat grid since it's the most likely
         # For this we'll put x=1, y=1, z=1
         x0 = np.hstack((np.zeros((3, 1)),
                         np.identity(3),
@@ -146,7 +169,8 @@ class ModelSurface(object):
         # Avoid 0. for numerical issues
         x0 += np.random.randn(*x0.shape) / 1000
         coefs_ = optimize.fmin_cg(self._loss, x0=x0,
-                                  args=(X, y, idx, dist_2D, self.alpha))
+                                  args=(X_poly, y_displaced, idx, dist_2D,
+                                        self.alpha, weights))
         self.coefs_ = coefs_
 
     @property
@@ -157,11 +181,11 @@ class ModelSurface(object):
     def t_(self):
         return self._displacer.t_
 
-    def _check_X(self, X):
+    def _check_input(self, X):
         """Transforms 2D to 3D"""
         if X.shape[1] == 2:
             X = np.hstack((X, np.zeros((len(X), 1))))
-        return X
+        return np.array(X)
 
     def predict(self, X):
         """Predicts the 3D location of from the 2D location.
@@ -176,39 +200,32 @@ class ModelSurface(object):
         Y: np.array, shape(n_points, 3)
             Predicted 3D locations.
         """
-        return self._predict(X, self.coefs_)
+        X = self._check_input(X)
 
-    def _predict(self, X, coefs):
-        """From 2D coordinates to 3D via polynomial and rotation transform"""
-        X = self._check_X(X)
-
-        # # compute polynomial
+        # compute polynomial
         X_poly = PolynomialFeatures(self.degree).fit_transform(X)
 
-        # # Predict all points
-        coefs = np.matrix(coefs.reshape([3, -1]))
+        # Combine polynomials
+        coefs = self.coefs_.reshape([3, -1])
         y_pred = np.dot(coefs, X_poly.T).T
 
-        # Rotate
-        y_pred = self._displacer.transform(y_pred)
-        return np.array(y_pred)
+        # Rotate and translate
+        return self._displacer.transform(np.array(y_pred))
 
-    def _loss(self, coefs, X, y, idx, dist_2D, alpha):
+    def _loss(self, coefs, X_poly, y_displaced, idx, dist_2D, alpha, weights):
         """Least Square Regression on polynomial bases constained with
         known 2D distances"""
-        y_pred = self._predict(X, coefs)
+        coefs = coefs.reshape([3, -1])
+        y_pred = np.dot(coefs, X_poly.T).T
 
         # Compute error with known points
-        y_error = np.sqrt(np.sum(np.asarray(y_pred[idx, :] - y) ** 2))
+        y_error = np.linalg.norm(y_pred[idx, :] - y_displaced)
 
-        # Distance constrain
-
-        # --- compute distance
+        # Compute points distance on polynomial
         dist_3D = squareform(pdist(y_pred))
 
-        # --- compute distance difference weighted by the distance
-        weights = (1 + dist_2D) ** 2  # avoid 0
-        dist = np.sqrt(np.nansum((dist_3D - dist_2D) ** 2 / weights))
+        # Compute distance difference weighted by the distance
+        dist = np.sqrt(np.sum((dist_3D - dist_2D) ** 2 / weights))
         if self.verbose == 'debug':
             print(y_error, dist)
         return (1 - alpha) * y_error + alpha * dist
