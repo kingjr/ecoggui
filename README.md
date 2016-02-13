@@ -12,7 +12,7 @@ This is currently an alpha version.
 
 Example
 =======
-To use the interface
+[To use the interface](examples/gui_mri_ecog):
 
 ```
 from ecoggui import ElectrodeGUI
@@ -21,9 +21,9 @@ ElectrodeGUI('T1_post_deface.nii.gz', xy=xy)
 ```
 
 To understand what is happening:
-* `examples/model_displacement.py`: how the 2D grid/strips are fitted with a
+* [`examples/model_displacement.py`](examples/model_displacement.py) how the 2D grid/strips are fitted with a
 rotation and translation to math the 3D locations.
-* `examples/model_displacement.py`: how the 2D grid/strips are fitted with a
+* [`examples/model_surface.py`](examples/model_surface.py): how the 2D grid/strips are fitted with a
 2nd order polynomial with a constrain on the electrodes local distances, as we
 know the grid can be flexible but are not elastic.
 
