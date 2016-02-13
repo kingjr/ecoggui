@@ -10,6 +10,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from ecoggui import ModelDisplacement
 
+# Make a random flat grid. Note that it works for any solid objects.
+n_samples = 6 ** 2
+X = np.meshgrid(np.linspace(0, 1., np.sqrt(n_samples)),  # x axis
+                np.linspace(0, 1., np.sqrt(n_samples)))  # y axis
+X = np.mat(np.transpose([ii.ravel() for ii in X]))
+X = np.hstack((X, np.zeros((len(X), 1))))  # add z axis
+
 # Random rotation and translation
 R = np.mat(np.random.rand(3, 3))
 t = np.mat(np.random.rand(3, 1))
@@ -24,9 +31,7 @@ if np.linalg.det(R) < 0:
     R = U * Vt
 
 # number of points
-n = 10
-X = np.mat(np.random.rand(n, 3))
-Y = R * X.T + np.tile(t, (1, n))
+Y = R * X.T + np.tile(t, (1, n_samples))
 Y = Y.T
 
 # To avoid confusion, we'll now treat these matrices as array:
