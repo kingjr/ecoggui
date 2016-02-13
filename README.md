@@ -8,7 +8,7 @@ User Interface.
 
 This is currently an alpha version.
 
-![alt tag](https://raw.github.com/kingjr/ecoggui/docs/ecoggui_animation.gif)
+![demo](docs/ecoggui_animation.gif)
 
 Example
 =======
