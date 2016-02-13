@@ -168,9 +168,9 @@ class ModelSurface(object):
                         np.zeros((3, n_coefs - 4)))).ravel()
         # Avoid 0. for numerical issues
         x0 += np.random.randn(*x0.shape) / 1000
-        coefs_ = optimize.fmin_cg(self._loss, x0=x0,
-                                  args=(X_poly, y_displaced, idx, dist_2D,
-                                        self.alpha, weights))
+        coefs_ = optimize.fmin_bfgs(self._loss, x0=x0, gtol=.01,
+                                    args=(X_poly, y_displaced, idx, dist_2D,
+                                          self.alpha, weights))
         self.coefs_ = coefs_
 
     @property
@@ -183,9 +183,12 @@ class ModelSurface(object):
 
     def _check_input(self, X):
         """Transforms 2D to 3D"""
+        X = np.array(X)
+        if X.ndim == 1:
+            X = X[:, None]
         if X.shape[1] == 2:
             X = np.hstack((X, np.zeros((len(X), 1))))
-        return np.array(X)
+        return X
 
     def predict(self, X):
         """Predicts the 3D location of from the 2D location.
