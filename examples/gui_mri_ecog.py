@@ -13,7 +13,7 @@ xy = np.transpose([ii.ravel() for ii in xy])
 gui = ElectrodeGUI(niimg=niimg, xy=xy)
 
 # Show electrode manually identified positions
-print(gui.ch_user[['x', 'y', 'z']])
+print(gui.ch_user)
 
 # Show electrodes predictions
-print(gui.ch_pred[['x', 'y', 'z']])
+print(gui.ch_pred)
