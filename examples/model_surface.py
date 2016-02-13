@@ -11,7 +11,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from ecoggui import ModelSurface
 
 # Generate 2D grid of electrodes
-n_samples = 6**2
+n_samples = 6 ** 2
 X = np.meshgrid(np.linspace(0, 1., np.sqrt(n_samples)),  # x
                 np.linspace(0, 1., np.sqrt(n_samples)))  # y
 X = np.mat(np.transpose([ii.ravel() for ii in X]))
@@ -35,12 +35,12 @@ t = np.mat(np.random.rand(3, 1))
 
 # make R a proper rotation matrix, force orthonormal
 U, S, Vt = np.linalg.svd(R)
-R = U*Vt
+R = U * Vt
 
 # remove reflection
 if np.linalg.det(R) < 0:
     Vt[2, :] *= -1
-    R = U*Vt
+    R = U * Vt
 
 Y = np.transpose(np.dot(R, X_t.T) + np.tile(t, (1, n_samples)))
 Y = np.array(Y)
