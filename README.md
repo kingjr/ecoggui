@@ -32,7 +32,7 @@ To understand what is happening:
 rotation and translation to match the 3D locations.
 * [`examples/model_surface.py`](examples/model_surface.py): how the 2D grid/strips are fitted with a
 2nd order polynomial with a constrain on the electrodes local distances, as we
-know the grid can be flexible but are not elastic.
+know the grid can be flexible but is not elastic.
 
 Installation
 ============
