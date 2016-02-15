@@ -637,13 +637,13 @@ class ElectrodeGUI():
     def _add(self, x, y, z, ch_idx):
         xyz_idx = self._inv_affine([x, y, z, 1])[0]
         x_2D, y_2D = self.grid.xy[ch_idx, :].tolist()
-        channel = dict(x=x, y=y, z=z, x_idx=xyz_idx[0], y_idx=xyz_idx[1],
-                       z_idx=xyz_idx[2], x_2D=x_2D, y_2D=y_2D, ch_idx=ch_idx)
+        channel = dict(x=x, y=y, z=z, x_2D=x_2D, y_2D=y_2D, ch_idx=ch_idx,
+                       x_idx=xyz_idx[0], y_idx=xyz_idx[1], z_idx=xyz_idx[2])
 
         # Plot new channel on each axis
         for ax, order in enumerate(self.ax_xyd):
             # Transform 3D coordinates into 2D + depths for each axis
-            x_dim, y_dim = np.array(['x_idx', 'y_idx', 'z_idx'])[[0, 1]]
+            x_dim, y_dim, _ = np.array(['x_idx', 'y_idx', 'z_idx'])[order]
             x = channel[x_dim]
             y = channel[y_dim]
             # Add scatter
