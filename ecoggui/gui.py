@@ -524,7 +524,7 @@ class ElectrodeGUI():
         self.grid = GridGUI(ax=plt.axes([0.1, 0., 0.1, 0.1]), xy=xy)
 
         # Setup surface fitting
-        self.model = ModelSurface(alpha=alpha)
+        self.model = ModelSurface(alpha=alpha, verbose=None)
 
         self._init_add()
         plt.show()
@@ -628,7 +628,7 @@ class ElectrodeGUI():
             # Predict all channels
             xyz = self.model.predict(self.grid.xy)
             # Plot and store predicted channels
-            for (x, y, z), ch_idx in zip(xyz, idx):
+            for ch_idx, (x, y, z)in enumerate(xyz):
                 channel = self._add(x, y, z, ch_idx)
                 self.ch_pred = self.ch_pred.append(channel, ignore_index=True)
 
