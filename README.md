@@ -17,7 +17,7 @@ Example
 ```
 from ecoggui import ElectrodeGUI
 cd examples
-ElectrodeGUI('T1_post_deface.nii.gz', xy=xy)
+ElectrodeGUI('T1_post_deface.nii.gz')
 ```
 
 To understand what is happening:
