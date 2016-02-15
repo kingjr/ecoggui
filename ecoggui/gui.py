@@ -6,6 +6,7 @@ Paul Ivanov, Eric Larson, Matthew Brett
 from __future__ import division, print_function
 
 from time import time
+import itertools
 from pandas import DataFrame as df
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -516,8 +517,6 @@ class ElectrodeGUI():
         self.ch_pred = df(columns=columns)
 
         # Scatter plot handles
-        self.handle_user = [list(), list(), list()]
-        self.handle_pred = [None, None, None]
         plt.gcf().canvas.mpl_connect('motion_notify_event', self._draw)
         self._last_refresh = time()  # XXX to refresh every 100 ms max
 
@@ -546,7 +545,7 @@ class ElectrodeGUI():
             # from channel image index coord. to axis x, y depth coord.
             max_depth = self.viewer._data.shape[ax]
 
-            # Update true and predicted chtrodes
+            # Update true and predicted channels
             for ch, typ in zip([self.ch_user, self.ch_pred], ['true', 'pred']):
                 handles = ch['handle_%i' % ax]
                 depths = ch[d_dim]
@@ -573,7 +572,7 @@ class ElectrodeGUI():
         import sys
         sys.stdout.flush()
         if event.key == u' ':
-            self._add()
+            self._add_here()
         elif event.key == u'delete':
             self._remove()  # TODO
         elif event.key == u'h':
@@ -592,30 +591,13 @@ class ElectrodeGUI():
         """
         Plot all known electrodes
         """
+        # TODO check ch_user, add ch_idx if not provided
         for loc in range(len(self.ch_user)):
             # Plot new channel on each axis
-            for ax, order in enumerate(self.ax_xyd):
-                # Transform 3D coordinates into 2D + depths for each axis
-                x_dim = ['x_idx', 'y_idx', 'z_idx'][order[0]]
-                y_dim = ['x_idx', 'y_idx', 'z_idx'][order[1]]
-                x = self.ch_user[x_dim].iloc[loc]
-                y = self.ch_user[y_dim].iloc[loc]
-                # Add scatter
-                0/0
-                # self.handle_user[ax].append(self.axes[ax].scatter(x, y))
+            self._add(*self.ch_user[['x', 'y', 'z', 'ch_idx']])
 
-        # Fit and predict channel locations
-        if len(self.ch_user) > 2 and self.fit:
-            self._add_predict()
-        self._draw()
-
-    def _add(self):
-
-        # Retrieve channel information
-        xyz_idx = self._current_idx()  # from mm to indices
-        x, y, z, _ = self.viewer._position  # current position
+    def _add_here(self):
         ch_idx = self.grid.selected_channel_  # current channel
-        x_2D, y_2D = self.grid.xy[ch_idx, :].tolist()
         # Ensure that this point hasn't already been defined
         if 'ch_idx' in self.ch_user.keys():
             iloc = self.ch_user['ch_idx'] == ch_idx
@@ -626,62 +608,47 @@ class ElectrodeGUI():
                 # remove line
                 self.ch_user = self.ch_user[~iloc]
 
-        # Store in DataFrame
-        # XXX DataFrame are not really appropriate here. Not sure what's the
-        # best alternative.
-        self.ch_user = self.ch_user.append(dict(
-            x=x, y=y, z=z,
-            x_idx=xyz_idx[0], y_idx=xyz_idx[1], z_idx=xyz_idx[2],
-            x_2D=x_2D, y_2D=y_2D, ch_idx=ch_idx),
-            ignore_index=True)
-
-        # Plot new channel on each axis
-        iloc = self.ch_user['ch_idx'] == ch_idx
-        for ax, order in enumerate(self.ax_xyd):
-            # Transform 3D coordinates into 2D + depths for each axis
-            x_dim = ['x_idx', 'y_idx', 'z_idx'][order[0]]
-            y_dim = ['x_idx', 'y_idx', 'z_idx'][order[1]]
-            x = self.ch_user[x_dim].iloc[-1]
-            y = self.ch_user[y_dim].iloc[-1]
-            # Add scatter
-            self.ch_user['handle_%i' % ax][iloc] = self.axes[ax].scatter(x, y)
-            print(self.ch_user['handle_%i' % ax][iloc])
+        # Retrieve channel information
+        x, y, z, _ = self.viewer._position  # current position
+        # Plot and store new channel
+        channel = self._add(x, y, z, ch_idx)
+        self.ch_user = self.ch_user.append(channel, ignore_index=True)
 
         # Fit and predict channel locations
         if len(self.ch_user) > 2 and self.fit:
-            self._add_predict()
+            # Clean previous dots
+            n_chan = len(self.ch_pred)
+            for ch, ax in itertools.product(range(n_chan), range(3)):
+                self.ch_pred['handle_%i' % ax][ch].remove()
+            self.ch_pred = self.ch_pred[[False] * n_chan]  # clear
+            # Get 3D coordinates of identified channels
+            y = self.ch_user[['x', 'y', 'z']].values
+            idx = np.array(self.ch_user['ch_idx'].values, int)
+            self.model.fit(X=self.grid.xy, y=y, idx=idx)
+            # Predict all channels
+            xyz = self.model.predict(self.grid.xy)
+            # Plot and store predicted channels
+            for (x, y, z), ch_idx in zip(xyz, idx):
+                channel = self._add(x, y, z, ch_idx)
+                self.ch_pred = self.ch_pred.append(channel, ignore_index=True)
 
         self._draw()
 
-    def _add_predict(self):
-        # get 3D coordinates of identified chtrodes
-        y = self.ch_user[['x', 'y', 'z']].values
-        idx = np.array(self.ch_user['ch_idx'].values, int)
-        self.model.fit(X=self.grid.xy, y=y, idx=idx)
-        # predict all chtrodes
-        xyz = self.model.predict(self.grid.xy)
-        # Convert from head coordinates to image indices
-        xyz = np.hstack((xyz, np.ones((len(xyz), 1))))  # affine needs 4D
-        xyz_idx = self._inv_affine(xyz)
-        # Save
-        self.ch_pred = df(dict(
-            x=xyz[:, 0], y=xyz[:, 1], z=xyz[:, 2],
-            x_idx=xyz_idx[:, 0], y_idx=xyz_idx[:, 1], z_idx=xyz_idx[:, 2]))
+    def _add(self, x, y, z, ch_idx):
+        xyz_idx = self._inv_affine([x, y, z, 1])[0]
+        x_2D, y_2D = self.grid.xy[ch_idx, :].tolist()
+        channel = dict(x=x, y=y, z=z, x_idx=xyz_idx[0], y_idx=xyz_idx[1],
+                       z_idx=xyz_idx[2], x_2D=x_2D, y_2D=y_2D, ch_idx=ch_idx)
 
-        # Plot new channels on each axis
+        # Plot new channel on each axis
         for ax, order in enumerate(self.ax_xyd):
-            # Transform 3D image coordinates into 2D + depth for each axis
-            xs = self.ch_pred[['x_idx', 'y_idx', 'z_idx'][order[0]]]
-            ys = self.ch_pred[['x_idx', 'y_idx', 'z_idx'][order[1]]]
-            if self.handle_pred[ax] is None:
-                # New scatter points
-                self.handle_pred[ax] = list()
-                for x, y in zip(xs, ys):
-                    self.handle_pred[ax].append(self.axes[ax].scatter(x, y))
-            else:
-                # Update scatter points
-                for ii, (x, y) in enumerate(zip(xs, ys)):
-                    self.handle_pred[ax][ii].set_offsets([x, y])
+            # Transform 3D coordinates into 2D + depths for each axis
+            x_dim, y_dim = np.array(['x_idx', 'y_idx', 'z_idx'])[[0, 1]]
+            x = channel[x_dim]
+            y = channel[y_dim]
+            # Add scatter
+            channel['handle_%i' % ax] = self.axes[ax].scatter(x, y)
+        return channel
 
     def _current_idx(self):
         """MRI data indices of current view"""
