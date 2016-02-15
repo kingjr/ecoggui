@@ -510,8 +510,10 @@ class ElectrodeGUI():
         ax.get_figure().canvas.mpl_connect('key_press_event', self._press)
 
         # channel locations
-        self.ch_user = df() if ch_user is None else ch_user
-        self.ch_pred = df(columns=['x', 'y', 'z', 'x_idx', 'y_idx', 'z_idx'])
+        columns = (['handle_%i' % ii for ii in range(3)] +
+                   ['x', 'y', 'z', 'x_idx', 'y_idx', 'z_idx'])
+        self.ch_user = df(columns=columns) if ch_user is None else ch_user
+        self.ch_pred = df(columns=columns)
 
         # Scatter plot handles
         self.handle_user = [list(), list(), list()]
@@ -534,7 +536,7 @@ class ElectrodeGUI():
         # XXX refresh on every slide move: probably not the best approach..
         if (time() + .100) < self._last_refresh:
             return
-        if not len(self.ch_user) or not len(self.handle_user):
+        if not len(self.ch_user):
             return
         # Current view:
         x, y, z, _ = self._current_idx()
@@ -545,10 +547,9 @@ class ElectrodeGUI():
             max_depth = self.viewer._data.shape[ax]
 
             # Update true and predicted chtrodes
-            for handles, depths, ch_idx in zip(
-                    [self.handle_user, self.handle_pred],
-                    [self.ch_user[d_dim].values, self.ch_pred[d_dim].values],
-                    ['true', 'predicted']):
+            for ch, typ in zip([self.ch_user, self.ch_pred], ['true', 'pred']):
+                handles = ch['handle_%i' % ax]
+                depths = ch[d_dim]
 
                 # Depth relative to current xyz normalize by img size
                 relative_depths = (depths - current_depth) / float(max_depth)
@@ -559,11 +560,11 @@ class ElectrodeGUI():
                 sizes = np.exp((1. - np.abs(relative_depths)) * 5) / 10
 
                 # Update
-                for ii, (color, size) in enumerate(zip(colors, sizes)):
-                    handles[ax][ii].set_color(color)
-                    handles[ax][ii].set_sizes([size])
-                    if ch_idx == 'predicted':
-                        handles[ax][ii].set_facecolor('none')
+                for color, size, ha in zip(colors, sizes, handles):
+                    ha.set_color(color)
+                    ha.set_sizes([size])
+                    if typ == 'pred':
+                        ha.set_facecolor('none')
 
             plt.draw()
         self._last_refresh = time()
@@ -600,7 +601,8 @@ class ElectrodeGUI():
                 x = self.ch_user[x_dim].iloc[loc]
                 y = self.ch_user[y_dim].iloc[loc]
                 # Add scatter
-                self.handle_user[ax].append(self.axes[ax].scatter(x, y))
+                0/0
+                # self.handle_user[ax].append(self.axes[ax].scatter(x, y))
 
         # Fit and predict channel locations
         if len(self.ch_user) > 2 and self.fit:
@@ -614,6 +616,15 @@ class ElectrodeGUI():
         x, y, z, _ = self.viewer._position  # current position
         ch_idx = self.grid.selected_channel_  # current channel
         x_2D, y_2D = self.grid.xy[ch_idx, :].tolist()
+        # Ensure that this point hasn't already been defined
+        if 'ch_idx' in self.ch_user.keys():
+            iloc = self.ch_user['ch_idx'] == ch_idx
+            if sum(iloc):
+                # remove dots
+                for ax in range(3):
+                    self.ch_user['handle_%i' % ax][iloc].values[0].remove()
+                # remove line
+                self.ch_user = self.ch_user[~iloc]
 
         # Store in DataFrame
         # XXX DataFrame are not really appropriate here. Not sure what's the
@@ -625,6 +636,7 @@ class ElectrodeGUI():
             ignore_index=True)
 
         # Plot new channel on each axis
+        iloc = self.ch_user['ch_idx'] == ch_idx
         for ax, order in enumerate(self.ax_xyd):
             # Transform 3D coordinates into 2D + depths for each axis
             x_dim = ['x_idx', 'y_idx', 'z_idx'][order[0]]
@@ -632,16 +644,8 @@ class ElectrodeGUI():
             x = self.ch_user[x_dim].iloc[-1]
             y = self.ch_user[y_dim].iloc[-1]
             # Add scatter
-            self.handle_user[ax].append(self.axes[ax].scatter(x, y))
-
-        # Update Grid GUI:
-        # Find channel that hasn't been defined yet and update drawing
-        n_ch = len(self.grid.xy)
-        sel = [int(ch) for ch in range(n_ch)
-               if ch not in self.ch_user['ch_idx']]
-        if len(sel):
-            self.grid.selected_channel_ = sel[0]
-            self.grid._update_color()
+            self.ch_user['handle_%i' % ax][iloc] = self.axes[ax].scatter(x, y)
+            print(self.ch_user['handle_%i' % ax][iloc])
 
         # Fit and predict channel locations
         if len(self.ch_user) > 2 and self.fit:
