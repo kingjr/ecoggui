@@ -5,3 +5,4 @@ scikit-learn
 nibabel
 matplotlib
 git+https://github.com/nilearn/nilearn.git
+git+https://github.com/kingjr/ecoggui.git
