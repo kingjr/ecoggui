@@ -27,7 +27,7 @@ rotation and translation to match the 3D locations.
 * `examples/model_surface.pynb`: how the 2D grid/strips are fitted with a
 2nd order polynomial with a constrain on the electrodes local distances, as we
 know the grid can be flexible but is not elastic.
-* `examples/gui_mri_ecog.py`: try to fit the grid this patient brain. It should take no more than five minutes.
+* `examples/gui_mri_ecog.pynb`: try to fit the grid this patient brain. It should take no more than five minutes.
 
 Installation
 ============

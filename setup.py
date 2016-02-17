@@ -2,10 +2,11 @@
 #
 # Copyright (C) 2015 Jean-Remi King
 # <jeanremi.king@gmail.com>
+#
+# Adapted from MNE-Python
 
 import os
-#  from numpy.distutils.core import setup
-from setuptools import setup
+from numpy.distutils.core import setup
 
 version = None
 with open(os.path.join('ecoggui', '__init__.py'), 'r') as fid:
