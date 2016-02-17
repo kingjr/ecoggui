@@ -22,12 +22,12 @@ Online Tutorials
 
 Click on the following examples to run the tutorial and results preview in your browser.
 
-* [`examples/model_displacement.ipynb`][http://mybinder.org/repo/kingjr/ecoggui/examples/model_displacement.ipynb] how the 2D grid/strips are fitted with a
+* [`examples/model_displacement.ipynb`](http://mybinder.org/repo/kingjr/ecoggui/examples/model_displacement.ipynb) how the 2D grid/strips are fitted with a
 rotation and translation to match the 3D locations.
-* [`examples/model_surface.ipynb`][http://mybinder.org/repo/kingjr/ecoggui/examples/model_surface.ipynb]: how the 2D grid/strips are fitted with a
+* [`examples/model_surface.ipynb`](http://mybinder.org/repo/kingjr/ecoggui/examples/model_surface.ipynb): how the 2D grid/strips are fitted with a
 2nd order polynomial with a constrain on the electrodes local distances, as we
 know the grid can be flexible but is not elastic.
-* [`examples/gui_mri_ecog.ipynb`][http://mybinder.org/repo/kingjr/ecoggui/examples/gui_mri_ecog.ipynb]: try to fit the grid this patient brain. It should take no more than five minutes.
+* [`examples/gui_mri_ecog.ipynb`](http://mybinder.org/repo/kingjr/ecoggui/examples/gui_mri_ecog.ipynb): try to fit the grid this patient brain. It should take no more than five minutes.
 
 Installation
 ============
