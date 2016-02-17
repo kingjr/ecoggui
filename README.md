@@ -17,22 +17,17 @@ This is currently an alpha version.
 
 ![demo](docs/ecoggui_animation.gif)
 
-Example
-=======
-[To use the interface](examples/gui_mri_ecog):
+Online Tutorials
+================
 
-```
-from ecoggui import ElectrodeGUI
-cd examples
-ElectrodeGUI('T1_post_deface.nii.gz')
-```
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/repo/kingjr/ecoggui) to run the online examples in your browser. Then go to notebooks and select the tutorials:
 
-To understand what is happening:
-* [`examples/model_displacement.py`](examples/model_displacement.py) how the 2D grid/strips are fitted with a
+* `examples/model_displacement.pynb` how the 2D grid/strips are fitted with a
 rotation and translation to match the 3D locations.
-* [`examples/model_surface.py`](examples/model_surface.py): how the 2D grid/strips are fitted with a
+* `examples/model_surface.pynb`: how the 2D grid/strips are fitted with a
 2nd order polynomial with a constrain on the electrodes local distances, as we
 know the grid can be flexible but is not elastic.
+* `examples/gui_mri_ecog.py`: try to fit the grid this patient brain. It should take no more than five minutes.
 
 Installation
 ============
