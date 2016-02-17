@@ -4,3 +4,4 @@ scipy
 scikit-learn
 nibabel
 matplotlib
+git+https://github.com/nilearn/nilearn.git
