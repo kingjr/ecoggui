@@ -1,6 +1,6 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 
-"""Generates 3 random 3D coordinates from a known 5x5 grid. Show how the grid
+"""Generates 3 random 3D coordinates from a known 6x6 grid. Show how the grid
 position, rotate and bending can be inferred using `ModelSurface`.
 """
 

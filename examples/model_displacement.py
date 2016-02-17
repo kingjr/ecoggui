@@ -30,7 +30,7 @@ if np.linalg.det(R) < 0:
     Vt[2, :] *= -1
     R = U * Vt
 
-# number of points
+# Displace X
 Y = R * X.T + np.tile(t, (1, n_samples))
 Y = Y.T
 
